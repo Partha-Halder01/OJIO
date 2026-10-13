@@ -1,0 +1,54 @@
+# Local tools and reference material, not application source.
+/.idea/
+/.vscode/
+/.github/modernize/
+/.codex/
+/.agents/
+/Marketplace_Real_UI_Assets/
+/*.png
+/*.avif
+/*.pdf
+/*.tar.gz
+
+# Keep the original backend repository metadata local.
+/ojio-backend/.git/
+/.legacy-ojio-backend-git/
+
+# Server credentials and private migration files must never be published.
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.vps.example
+**/.vps-*
+**/auth.json
+**/*firebase-adminsdk*.json
+**/*service-account*.json
+**/railway-client.cnf
+**/vps-client.cnf
+**/migration/
+*.sql
+*.sql.gz
+*.sql.zip
+*.sqlite
+*.sqlite-*
+
+# Android signing secrets and compiled release artifacts.
+**/key.properties
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.pem
+*.key
+*.apk
+*.aab
+*.ipa
+
+# Dependency caches and generated build output.
+**/vendor/
+**/node_modules/
+**/.dart_tool/
+**/.gradle/
+**/build/
+**/coverage/
+*.log

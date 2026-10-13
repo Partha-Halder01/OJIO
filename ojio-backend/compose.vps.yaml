@@ -1,0 +1,111 @@
+name: ojio
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-app: &application
+  image: ojio-app:vps
+  build:
+    context: .
+    dockerfile: Dockerfile.vps
+    target: app
+  env_file:
+    - .env.vps
+  environment:
+    APP_ENV: production
+    APP_DEBUG: "false"
+    DB_CONNECTION: mysql
+    DB_URL: ""
+    DB_HOST: db
+    DB_PORT: "3306"
+    QUEUE_CONNECTION: database
+    FCM_QUEUE_CONNECTION: database
+  volumes:
+    - app-storage:/var/www/html/storage
+  restart: unless-stopped
+  init: true
+  security_opt:
+    - no-new-privileges:true
+  depends_on:
+    db:
+      condition: service_healthy
+  logging: *logging
+
+services:
+  db:
+    image: ${VPS_MYSQL_IMAGE:?Verify a MySQL image matching the source before importing data}
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:?Set DB_DATABASE in .env.vps}
+      MYSQL_USER: ${DB_USERNAME:?Set DB_USERNAME in .env.vps}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set a private DB_PASSWORD in .env.vps}
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+    secrets:
+      - mysql_root_password
+    command: ["--innodb-buffer-pool-size=384M", "--max-connections=75", "--max-allowed-packet=128M"]
+    volumes:
+      - mysql-data:/var/lib/mysql
+    # No host ports: the database must never be publicly accessible.
+    restart: unless-stopped
+    mem_limit: 1536m
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    logging: *logging
+
+  app:
+    <<: *application
+    profiles: ["runtime"]
+    mem_limit: 1024m
+
+  web:
+    image: ojio-web:vps
+    build:
+      context: .
+      dockerfile: Dockerfile.vps
+      target: web
+    profiles: ["runtime"]
+    # Private staging only. Public HTTPS will be configured before mobile cutover.
+    ports:
+      - "127.0.0.1:8080:80"
+    volumes:
+      - app-storage:/var/www/html/storage:ro
+    restart: unless-stopped
+    mem_limit: 128m
+    depends_on:
+      app:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/up || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging: *logging
+
+  worker:
+    <<: *application
+    profiles: ["workers"]
+    command: ["php", "artisan", "queue:work", "database", "--queue=push,default", "--sleep=3", "--tries=3", "--timeout=40", "--max-time=3600", "--no-interaction"]
+    stop_grace_period: 60s
+    mem_limit: 256m
+
+  scheduler:
+    <<: *application
+    profiles: ["workers"]
+    command: ["php", "artisan", "schedule:work", "--no-interaction"]
+    stop_grace_period: 60s
+    mem_limit: 128m
+
+volumes:
+  mysql-data:
+  app-storage:
+
+secrets:
+  mysql_root_password:
+    file: ./.vps-mysql-root-password

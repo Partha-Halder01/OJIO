@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "893178945153",
+    "project_id": "ojio-83893",
+    "storage_bucket": "ojio-83893.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:893178945153:android:9d6eb72e3afd895cf7b780",
+        "android_client_info": {
+          "package_name": "com.ojio.app.ojio_mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "893178945153-6umj8glejf37gk2v8smfttb5f5ml4o6e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ojio.app.ojio_mobile",
+            "certificate_hash": "a8f21c3f41a227b4974c894da797b93c26e505b2"
+          }
+        },
+        {
+          "client_id": "893178945153-iv5pfj12e2msfasuujp3fnjp62e0bt0f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ojio.app.ojio_mobile",
+            "certificate_hash": "ad7680e5bdb39107c2df424e02ba3a659ae203c1"
+          }
+        },
+        {
+          "client_id": "893178945153-tvaejgs71t83so9pj747kq03smp2q888.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTXCOfvsyubljZmu62wWaJooduvMxE6CE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "893178945153-tvaejgs71t83so9pj747kq03smp2q888.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,7 @@
+# Copy to key.properties and restore the privately backed-up keystore.
+# Never commit key.properties or any private keystore.
+storePassword=REPLACE_WITH_PRIVATE_KEYSTORE_PASSWORD
+keyPassword=REPLACE_WITH_PRIVATE_KEYSTORE_PASSWORD
+keyAlias=ojio-release
+storeFile=keystore/ojio-release.p12
+storeType=PKCS12
