@@ -8,10 +8,13 @@ import 'package:ojio_mobile/core/feed_ad_placements.dart';
 import 'package:ojio_mobile/core/marketplace_location.dart';
 import 'package:ojio_mobile/screens/marketplace_feed_screen.dart';
 import 'package:ojio_mobile/widgets/admob_banner_widget.dart';
+import 'package:ojio_mobile/services/admob_service.dart';
 import 'package:ojio_mobile/widgets/listing_card.dart';
 import 'home_quota_notice_test.dart' show FullFeedApi;
 
 void main() {
+  setUp(() => AdMobService.instance.adsReady.value = true);
+  tearDown(() => AdMobService.instance.adsReady.value = false);
   test(
     'ad positions are sparse, stable, row-aligned and never at the feed ends',
     () {
@@ -234,6 +237,17 @@ void main() {
       secondAd.listener.onAdLoaded!(secondAd);
       await tester.pumpAndSettle();
       expect(tester.getSize(find.byType(AdWidget)), const Size(240, 90));
+      AdMobService.instance.adsReady.value = false;
+      await tester.pumpAndSettle();
+      expect(find.byType(AdWidget), findsNothing);
+      expect(tester.getSize(find.byType(AdMobBannerWidget)).height, 0);
+      expect(disposedIds, contains(loadedIds.last));
+      secondAd.listener.onAdLoaded!(secondAd);
+      await tester.pumpAndSettle();
+      expect(find.byType(AdWidget), findsNothing);
+      AdMobService.instance.adsReady.value = true;
+      await tester.pumpAndSettle();
+      expect(loadedIds.length, 3);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();

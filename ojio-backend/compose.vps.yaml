@@ -70,9 +70,9 @@ services:
       dockerfile: Dockerfile.vps
       target: web
     profiles: ["runtime"]
-    # Private staging only. Public HTTPS will be configured before mobile cutover.
+    # HTTP deployment verification only. Configure HTTPS before mobile cutover.
     ports:
-      - "127.0.0.1:8080:80"
+      - "80:80"
     volumes:
       - app-storage:/var/www/html/storage:ro
     restart: unless-stopped

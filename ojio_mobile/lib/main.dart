@@ -2,7 +2,8 @@ import 'widgets/app_notice.dart';
 import 'widgets/premium_badge.dart';
 import 'screens/premium_preview_screen.dart';
 import 'screens/marketplace_feed_screen.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'services/admob_service.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart' show AdSize;
 import 'dart:async';
 import 'services/chat_unread_service.dart';
 import 'services/my_ads_updates_service.dart';
@@ -46,16 +47,10 @@ double? globalLongitude;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await PushNotificationsService.instance.initialize();
-  if (!kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS)) {
-    try {
-      await MobileAds.instance.initialize();
-    } catch (e) {
-      debugPrint('AdMob init error: $e');
-    }
-  }
   runApp(const OjioApp());
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(AdMobService.instance.initialize());
+  });
 }
 
 class OjioApp extends StatelessWidget {

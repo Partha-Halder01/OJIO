@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/theme.dart';
 import 'legal_document_screen.dart';
+import '../services/admob_service.dart';
+import '../widgets/app_notice.dart';
 
 class AboutOjioScreen extends StatelessWidget {
   const AboutOjioScreen({super.key});
@@ -149,6 +151,50 @@ class AboutOjioScreen extends StatelessWidget {
                     context,
                     Icons.privacy_tip_outlined,
                     LegalDocument.privacy,
+                  ),
+                  ValueListenableBuilder<bool>(
+                    valueListenable:
+                        AdMobService.instance.privacyOptionsRequired,
+                    builder: (context, required, _) => !required
+                        ? const SizedBox.shrink()
+                        : Column(
+                            children: [
+                              const Divider(height: 1, indent: 56),
+                              ListTile(
+                                leading: const Icon(
+                                  Icons.tune,
+                                  color: Color(0xFF087CF5),
+                                  size: 22,
+                                ),
+                                title: Text(
+                                  'Ad privacy choices',
+                                  style: GoogleFonts.outfit(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                trailing: const Icon(
+                                  Icons.chevron_right_rounded,
+                                  size: 18,
+                                  color: AppColors.textSecondary,
+                                ),
+                                onTap: () async {
+                                  final shown = await AdMobService.instance
+                                      .showPrivacyOptions();
+                                  if (!shown && context.mounted) {
+                                    AppNotice.show(
+                                      context,
+                                      const SnackBar(
+                                        content: Text(
+                                          'Ad privacy choices are unavailable. Please try again.',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
                   ),
                 ],
               ),

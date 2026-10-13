@@ -7,6 +7,7 @@ use Database\Seeders\AdminUserSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\Yaml\Yaml;
 use Tests\TestCase;
 
 class VpsDeploymentSafetyTest extends TestCase
@@ -93,7 +94,12 @@ class VpsDeploymentSafetyTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('/php artisan (migrate|db:seed|key:generate)/', $entrypoint);
 
         $compose = file_get_contents(base_path('compose.vps.yaml'));
-        $this->assertStringContainsString('127.0.0.1:8080:80', $compose);
+        $services = Yaml::parse($compose)['services'];
+        $this->assertArrayNotHasKey('ports', $services['db']);
+        $this->assertArrayNotHasKey('ports', $services['app']);
+        $this->assertArrayNotHasKey('ports', $services['worker']);
+        $this->assertArrayNotHasKey('ports', $services['scheduler']);
+        $this->assertSame(['80:80'], $services['web']['ports']);
         $this->assertStringNotContainsString('3306:3306', $compose);
         $this->assertStringNotContainsString('9000:9000', $compose);
         $this->assertStringContainsString('mysql-data:/var/lib/mysql', $compose);
@@ -105,5 +111,33 @@ class VpsDeploymentSafetyTest extends TestCase
         $this->assertStringContainsString('APP_DEBUG=false', $environment);
         $this->assertStringContainsString('FCM_ENABLED=false', $environment);
         $this->assertStringContainsString("DB_PASSWORD=\n", $environment);
+    }
+
+    public function test_fcm_overlay_mounts_private_credentials_only_in_app_and_worker(): void
+    {
+        $overlay = Yaml::parseFile(base_path('compose.fcm.yaml'));
+        $this->assertSame(['app', 'worker'], array_keys($overlay['services']));
+
+        foreach ($overlay['services'] as $service) {
+            $this->assertSame(['firebase_service_account'], $service['secrets']);
+            $this->assertSame('/run/secrets/firebase_service_account', $service['environment']['GOOGLE_APPLICATION_CREDENTIALS']);
+            $this->assertSame('', $service['environment']['FCM_SERVICE_ACCOUNT_JSON']);
+            $this->assertArrayNotHasKey('FCM_ENABLED', $service['environment']);
+        }
+
+        $this->assertSame(
+            '${FCM_SERVICE_ACCOUNT_FILE:?Set the private JSON host path in .env.vps}',
+            $overlay['secrets']['firebase_service_account']['file'],
+        );
+        $this->assertStringNotContainsString('PRIVATE KEY', file_get_contents(base_path('compose.fcm.yaml')));
+        $this->assertStringContainsString('FCM_ENABLED=false', file_get_contents(base_path('.env.vps.example')));
+    }
+
+    public function test_admob_authorized_seller_file_matches_the_client_publisher(): void
+    {
+        $this->assertSame(
+            'google.com, pub-9962423610902602, DIRECT, f08c47fec0942fa0',
+            trim(file_get_contents(public_path('app-ads.txt'))),
+        );
     }
 }

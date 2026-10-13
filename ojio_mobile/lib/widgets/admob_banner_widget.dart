@@ -1,8 +1,9 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../core/admob_config.dart';
+import '../services/admob_service.dart';
 
 class AdMobBannerWidget extends StatefulWidget {
   final AdSize adSize;
@@ -26,13 +27,29 @@ class _AdMobBannerWidgetState extends State<AdMobBannerWidget> {
   int _loadGeneration = 0;
   bool _failed = false;
 
-  bool get _isMobileAdsSupported =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS);
+  @override
+  void initState() {
+    super.initState();
+    AdMobService.instance.adsReady.addListener(_onAdsReadinessChanged);
+  }
+
+  void _onAdsReadinessChanged() {
+    if (!mounted) return;
+    final previousAd = _bannerAd;
+    setState(() {
+      _loadGeneration++;
+      _bannerAd = null;
+      _displaySize = null;
+      _requestedWidth = null;
+      _requestedOrientation = null;
+      _failed = false;
+    });
+    unawaited(_disposeAd(previousAd));
+  }
 
   bool _isCurrent(int generation, [Ad? ad]) =>
       mounted &&
+      AdMobService.instance.adsReady.value &&
       generation == _loadGeneration &&
       (ad == null || ad == _bannerAd);
 
@@ -64,9 +81,7 @@ class _AdMobBannerWidgetState extends State<AdMobBannerWidget> {
     await _disposeAd(previousAd);
     if (!_isCurrent(generation)) return;
     final ad = BannerAd(
-      adUnitId: defaultTargetPlatform == TargetPlatform.iOS
-          ? 'ca-app-pub-3940256099942544/2435281174'
-          : 'ca-app-pub-3940256099942544/9214589741',
+      adUnitId: AdMobConfig.bannerId,
       size: AdSize.getInlineAdaptiveBannerAdSize(width, widget.adSize.height),
       request: const AdRequest(),
       listener: BannerAdListener(
@@ -107,6 +122,7 @@ class _AdMobBannerWidgetState extends State<AdMobBannerWidget> {
 
   @override
   void dispose() {
+    AdMobService.instance.adsReady.removeListener(_onAdsReadinessChanged);
     _loadGeneration++;
     unawaited(_disposeAd(_bannerAd));
     super.dispose();
@@ -114,7 +130,9 @@ class _AdMobBannerWidgetState extends State<AdMobBannerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_isMobileAdsSupported) return const SizedBox.shrink();
+    if (!AdMobConfig.isSupported || !AdMobService.instance.adsReady.value) {
+      return const SizedBox.shrink();
+    }
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth.isFinite
