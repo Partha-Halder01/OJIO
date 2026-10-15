@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\PublicFilePath;
+
 /**
  * Laravel - A PHP Framework For Web Artisans
  *
@@ -7,40 +9,41 @@
  * Accurately serves static files (images, CSS, JS, APK) directly from /public directory.
  */
 
-$publicPath = __DIR__ . '/public';
+require_once __DIR__.'/app/Support/PublicFilePath.php';
 
-$uri = urldecode(
-    parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? ''
-);
+$publicPath = __DIR__.'/public';
+$requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+if (! is_string($requestPath) || ! str_starts_with($requestPath, '/')) {
+    http_response_code(404);
+    exit;
+}
 
-$filePath = $publicPath . $uri;
+$relativePath = substr(rawurldecode($requestPath), 1);
+if (! PublicFilePath::isSafeRelativePath($relativePath)) {
+    http_response_code(404);
+    exit;
+}
 
-// If file exists directly in public/ (images, CSS, JS, APK download), serve it as static file
-if ($uri !== '/' && is_file($filePath)) {
-    $mimeTypes = [
-        'png'   => 'image/png',
-        'jpg'   => 'image/jpeg',
-        'jpeg'  => 'image/jpeg',
-        'gif'   => 'image/gif',
-        'svg'   => 'image/svg+xml',
-        'webp'  => 'image/webp',
-        'ico'   => 'image/x-icon',
-        'css'   => 'text/css',
-        'js'    => 'application/javascript',
-        'json'  => 'application/json',
-        'apk'   => 'application/vnd.android.package-archive',
-        'pdf'   => 'application/pdf',
-        'woff'  => 'font/woff',
-        'woff2' => 'font/woff2',
-        'ttf'   => 'font/ttf',
-    ];
-    $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-    $mime = $mimeTypes[$ext] ?? 'application/octet-stream';
-    header('Content-Type: ' . $mime);
-    header('Content-Length: ' . filesize($filePath));
+$isUpload = str_starts_with($relativePath, 'storage/');
+$filePath = $isUpload
+    ? PublicFilePath::resolve(__DIR__.'/storage/app/public', substr($relativePath, 8))
+    : PublicFilePath::resolve($publicPath, $relativePath);
+
+if ($filePath !== null) {
+    header('Content-Type: '.PublicFilePath::mimeType($filePath));
+    header('Content-Length: '.filesize($filePath));
     header('Cache-Control: public, max-age=86400');
+    header('X-Content-Type-Options: nosniff');
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'HEAD') {
+        exit;
+    }
     readfile($filePath);
     exit;
 }
 
-require_once $publicPath . '/index.php';
+if ($isUpload) {
+    http_response_code(404);
+    exit;
+}
+
+require_once $publicPath.'/index.php';

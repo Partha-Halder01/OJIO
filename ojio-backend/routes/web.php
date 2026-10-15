@@ -6,16 +6,16 @@ use App\Models\Banner;
 use App\Models\Category;
 use App\Models\Coupon;
 use App\Models\Listing;
+use App\Support\PublicFilePath;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
 // Fallback route to serve storage files if symlink is broken
 Route::get('/storage/{folder}/{filename}', function ($folder, $filename) {
-    $path = storage_path('app/public/'.$folder.'/'.$filename);
-    if (! file_exists($path)) {
-        abort(404);
-    }
+    $path = PublicFilePath::resolve(Storage::disk('public')->path(''), $folder.'/'.$filename);
+    abort_if($path === null, 404);
 
-    return response()->file($path);
+    return response()->file($path, ['X-Content-Type-Options' => 'nosniff']);
 })->where('filename', '.*');
 
 // 1. App Download & Showcase Landing Page
